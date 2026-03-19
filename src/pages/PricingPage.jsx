@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DataTable } from '../components/DataTable';
 import { SectionTitle } from '../components/SectionTitle';
 import { useStore } from '../store/useStore';
@@ -10,12 +10,26 @@ export function PricingPage() {
   const priceHistory = useStore((state) => state.priceHistory);
   const updateProductPrice = useStore((state) => state.updateProductPrice);
   const [category, setCategory] = useState('all');
+  const [editedPrices, setEditedPrices] = useState({});
 
   const categories = useMemo(() => getCategoryOptions(products), [products]);
   const filteredProducts = useMemo(
     () => products.filter((product) => category === 'all' || product.category === category),
     [products, category],
   );
+
+  useEffect(() => {
+    setEditedPrices(
+      products.reduce((accumulator, product) => {
+        accumulator[product.id] = product.price;
+        return accumulator;
+      }, {}),
+    );
+  }, [products]);
+
+  const handleSavePrice = (productId) => {
+    updateProductPrice(productId, editedPrices[productId]);
+  };
 
   return (
     <div className="space-y-6">
@@ -53,7 +67,26 @@ export function PricingPage() {
             </div>
             <p className="mt-4 text-3xl font-semibold">{formatCurrency(product.price)}</p>
             <div className="mt-4 flex gap-3">
-              <input className="input" type="number" min="0" step="0.01" defaultValue={product.price} onBlur={(e) => updateProductPrice(product.id, e.target.value)} />
+              <input
+                className="input"
+                type="number"
+                min="0"
+                step="0.01"
+                value={editedPrices[product.id] ?? product.price}
+                onChange={(e) =>
+                  setEditedPrices((current) => ({
+                    ...current,
+                    [product.id]: e.target.value,
+                  }))
+                }
+              />
+              <button
+                className="btn-primary"
+                type="button"
+                onClick={() => handleSavePrice(product.id)}
+              >
+                Save
+              </button>
             </div>
           </div>
         ))}
